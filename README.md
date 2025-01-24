@@ -1,5 +1,11 @@
 # BirdsOfAFeather_FlockTogether
 
+![image_oiseaux](https://github.com/user-attachments/assets/8caefc34-fdc8-4901-9145-202b349a38dd)
+
+
+
+
+
 * **Developed by:** Thomas & Héloïse
 * **Developed for:** Manceau Lab
 * **Team:** Manceau

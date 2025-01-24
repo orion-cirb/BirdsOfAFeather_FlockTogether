@@ -1,7 +1,7 @@
 # BirdsOfAFeather_FlockTogether
 
-![image_oiseaux](https://github.com/user-attachments/assets/8caefc34-fdc8-4901-9145-202b349a38dd)
 
+![image_oiseau_petit-1](https://github.com/user-attachments/assets/b855764d-54d1-4f12-b404-28302a39d4a9)
 
 
 

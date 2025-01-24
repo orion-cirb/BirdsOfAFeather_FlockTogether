@@ -1,6 +1,26 @@
+/*
+ * Description: 
+ * Developed for: Carole, Manceau's team
+ * Author:Thomas Caille @ ORION-CIRB 
+ * Date: January 2025
+ * Repository:
+ * Dependencies: None
+*/
+
+
+/* TODO:
+ * Compléter cartouche ci-dessus
+ * Commenter (chaque "paragraphe" de code, fonction, etc)
+ * Texte en anglais (dans boîtes de dialogue, fenetres pop-up, ROI Manager, fichier CSV)
+ * Cleaner sauts de ligne, indentation, espaces, majuscules, etc
+ * Enlever les parametres de fonctions non utilisés (ex: choosenLong dans renameROI())
+ * Donner des noms de variables et de fonctions explicites
+ */
+
 
 // Retrieve list of orders
-orders_families = Table.open("/Users/thomas/Downloads/orders_families.csv");
+orders_families_path = "/home/heloise/Bureau/orders_families.csv"; // TODO: demander le fichier via une boite de dialogue ou aller le chercher dans le dossier d'images directement ?
+orders_families = Table.open(orders_families_path);  
 orders = split(Table.headings, "\t");
 close("orders_families.csv");
 
@@ -11,7 +31,7 @@ Dialog.show();
 order = Dialog.getChoice();
 
 // Retrieve list of families for selected order
-orders_families = Table.open("/Users/thomas/Downloads/orders_families.csv");
+orders_families = Table.open(orders_families_path);
 families = Table.getColumn(order);
 families = Array.deleteValue(families, NaN);
 close("orders_families.csv");
@@ -35,6 +55,8 @@ sex = Dialog.getChoice();
 experimenter = Dialog.getString();
 
 
+//TODO: demander le dossier d'images via une boite de dialogue + boucle for sur toutes les images jpg ?
+
 run("Select None");
 roiManager("reset");
 setOption("Show All",false);
@@ -49,7 +71,7 @@ calibration(x1,y1,x2,y2);
 
 setTool("multipoint");
 Dialog.createNonBlocking("");
-Dialog.addMessage("Placer vos points", 20, "black");
+Dialog.addMessage("Placer vos points", 20, "black"); //TODO: décrire quels points doivent etre places et dans quel ordre
 Dialog.show();
 
 
@@ -66,7 +88,7 @@ run("Duplicate...", " ");
 close("\\Others");
 
 
-items = newArray(2);
+items = newArray(2); //TODO: newArray("oui", "non")
 items[0] = "oui";
 items[1] = "non";
 sizeX = 50 ;
@@ -76,21 +98,25 @@ widthOri = getWidth();
 colorMotif = newArray(30);
 colorFond = newArray(30);
 
+// CREATE VERTICAL REGIONS
+
+
+
 Dialog.createNonBlocking("");
 
-Dialog.addNumber("nombre de frontière verticales", 0);
+Dialog.addNumber("nombre de frontière verticales", 1); //TODO: checker ce qu'il se passe si l'utilisateur met 0
 
 Dialog.show();
 
 nbVerti = Dialog.getNumber(); 
 
-type = newArray("Droite","U","U inverse","V","V inverse");
+type = newArray("Droite","U","U inverse","V","V inverse"); //TODO: utiliser un nom de variable explicite (ex: verticalBoundariesTypes)
 motifs = newArray("barres","ecailles","taches","uniforme");
 
 	Dialog.create("");
 	Dialog.addMessage(" type de frontière verticale : ", 20, "black");
-for (i = 0; i < nbVerti; i++) {
-	if (i == 0) {
+for (i = 0; i < nbVerti; i++) { //TODO: for (i = 1; i <= nbVerti; i++) {
+	if (i == 0) { //TODO: Dialog.addChoice("Vertical boundary " + i, type)
 		
 		Dialog.addChoice(" "+(i+1)+" ère frontière", type)
 	} 	else {
@@ -100,13 +126,13 @@ for (i = 0; i < nbVerti; i++) {
 }
 
 Dialog.show();
-choosen = newArray(nbVerti);
+choosen = newArray(nbVerti); //TODO: utiliser un nom de variable explicite (ex: verticalBoundaries)
 
 
-height = getHeight();
-width = getWidth();
+height = getHeight(); //TODO: pas besoin, deja fait ci-dessus
+width = getWidth(); //TODO: idem
 
-imageID = getImageID();
+imageID = getImageID(); //TODO: idem
 close("\\Others");
 
 for (j = 0; j < nbVerti; j++) {
@@ -118,95 +144,93 @@ roiManager("add");
 
 for (k = 0; k < nbVerti; k++) {	
 
- if (choosen [k] == "Droite") {
-  makeLine((sizeX*(k+1)),0,(sizeX*(k+1)),height);
+ if (choosen [k] == "Droite") { //TODO: if (choosen [k] == type[0]) {  
+  makeLine((sizeX*(k+1)),0,(sizeX*(k+1)),height); 
   makeFrontier(k);
  }
- if (choosen [k] == "U" || choosen [k] == "U inverse") {
+ if (choosen [k] == "U" || choosen [k] == "U inverse") { //TODO: idem
   makeLine((sizeX*j),0,(sizeX*j+50),(height/3),(sizeX*j+50),(height/1.5),(sizeX*j),height);
    makeFrontier(k);
  }
- if (choosen [k] == "V" || choosen [k] == "V inverse") {
+ if (choosen [k] == "V" || choosen [k] == "V inverse") { //TODO: idem
   makeLine((sizeX*j),0,(sizeX*j+50),(height/2),(sizeX*j),height);	
    makeFrontier(k);
  }
+ //TODO: makeFrontier(k) plutot que de le repeter 3 fois 
 }
 
-makeLine(width-1, 0,width-1, height);
+makeLine(width-1, 0,width-1, height); //TODO: makeLine(width, 0, width, height);
 roiManager("add");
 
 
 
 
-roiSize = roiManager("count")-1 ;
+roiSize = roiManager("count")-1 ; //TODO: utiliser un nom de variable explicite (ex: roisNb)
 
 for (l = 0; l <roiSize ; l++) {
 	roiManager("select", l);
-	roi = Roi.getCoordinates(xpoints, ypoints);
+	roi = Roi.getCoordinates(xpoints, ypoints); //TODO: supprimer roi = 
 	sizeY = lengthOf(ypoints);
 
 	if (sizeY == 4) {
 		xpoints[1] = xpoints[2];
-		xpoints[2] = xpoints[2];
+		xpoints[2] = xpoints[2]; //TODO: à supprimer?
 		ypoints[1] = (height/3);
 		ypoints[2] = (height/1.5);
 	}
-	if (sizeY == 3) {
+	if (sizeY == 3) { //TODO: else if
 		ypoints[1] = (height/2);
 	}
+	xpoints[0] = (xpoints[(sizeY-1)] + xpoints[0]) /2;
 	ypoints[0] = 0;
-	ypoints[(sizeY-1)] = height;
 	
-	
-		xpoints [0] = (xpoints[(sizeY-1)] + xpoints[0]) /2;
-		xpoints[(sizeY-1)] =  xpoints[0];		
-	
+	xpoints[(sizeY-1)] = xpoints[0];	
+	ypoints[(sizeY-1)] = height;		
+}
+
+for (l = 0; l <roiSize ; l++) {
+	roiManager("select", l);
+	roi = Roi.getCoordinates(xpoints, ypoints); //TODO: supprimer roi = 
 	Array.reverse(xpoints);
 	Array.reverse(ypoints);
 	
 	roiManager("select", l+1);
-
-	roi2 = Roi.getCoordinates(xpoints2, ypoints2);
-	sizeY2 = lengthOf(ypoints2);
-	if (sizeY2 == 4) {
-		xpoints2[1] = xpoints2[2];
-		xpoints2[2] = xpoints2[2];
-		ypoints2[1] = (height/3);
-		ypoints2[2] = (height/1.5);
-	}
-	if (sizeY2 == 3) {
-		ypoints2[1] = (height/2);
-	}
-	ypoints2[0] = 0;
-	ypoints2[(sizeY2-1)] = height;	
-	
-		xpoints2[0] = (xpoints2[(sizeY2-1)] + xpoints2[0])/2;
-		xpoints2[(sizeY2-1)] =  xpoints2[0];		
+	roi2 = Roi.getCoordinates(xpoints2, ypoints2); //TODO: idem
 	
 	X = Array.concat(xpoints,xpoints2);
 	Y = Array.concat(ypoints,ypoints2);
 	borderDot(Y,X,l);
-	roiManager("select", l);
-	roiManager("rename", "region " + (l+1));
+	roiManager("select", l); 
+	roiManager("rename", "region " + (l+1)); //TODO: pas besoin, deja fait ci-dessous
+	//TODO: inclure tout le contenu de cette boucle for dans la fonction borderDot ?
 }
+
+
+
 
 roiArray = newArray(roiSize);
 for (m = 0; m < (roiSize+1); m++) {
 	roiArray [m] = m;
-}
+} 
 
-roiManager("select",roiArray);
+roiManager("select",roiArray); //TODO: roiManager("select", Array.getSequence(roiSize+1));
 roiManager("delete");
+
+
+
 
 choosenLong = newArray(nbVerti+1);
 renameROI(choosenLong,roiSize);
 
 
+// CREATE LONGITUDINAL SUBREGIONS
+
+
 setOption("Show All",true);
 Dialog.createNonBlocking("");
 Dialog.addMessage("frontière longitudinale : ", 20, "black");
-for (i = 0; i < (nbVerti+1); i++) {
-	if (i == 0) {
+for (i = 0; i < (nbVerti+1); i++) { //TODO: for (i = 1; i <= nbVerti+1; i++) {
+	if (i == 0) { //TODO: Dialog.addRadioButtonGroup("Region " + i, items, 1, 2, "non");
 		
 		Dialog.addRadioButtonGroup(" "+(i+1)+" ère région", items,1,2,"non")
 	} 	else {
@@ -227,6 +251,8 @@ for (k= 0; k < nbVerti+1; k++){
 
 regionOfInterest(choosenLong,roiSize);
 
+// SCALE SCHEME AND ROIS TO FIXED SIZE
+
 run("Select None");
 run("Scale...", "x=- y=- width=500 height=250 interpolation=Bilinear average create");
 RoiManager.scale(500/width,250/height,false)
@@ -245,7 +271,7 @@ colorArray(array);
 
 	
 for (i = 0; i <= (roiManager("count")-1); i++) {
-
+	
 		
 	if (i == 0) {
 		roiManager("select", i);
@@ -253,17 +279,18 @@ for (i = 0; i <= (roiManager("count")-1); i++) {
 		Dialog.createNonBlocking("");
 		Dialog.addMessage("motif de la "+roiName+":                                         ", 20, "black");	
 		
-		Dialog.addRadioButtonGroup("motif :", motifs,1,4,"uniforme");
-		Dialog.addRadioButtonGroup("couleur motif:", array, 6 , 7,0);
-		Dialog.addToSameRow();
+		Dialog.addRadioButtonGroup("motif :", motifs,1,4,"uniforme"); //TODO: Dialog.addRadioButtonGroup("motif :", motifs, 1, 4, motifs[3]);
+		Dialog.addRadioButtonGroup("couleur motif:", array, 6 , 7,0); //TODO: Dialog.addRadioButtonGroup("couleur motif:", array, 6, 7, array[0]);
+		Dialog.addToSameRow(); //TODO: à supprimer?
 		Dialog.addRadioButtonGroup("couleur fond:", array, 6 , 7,0);
 		Dialog.show();
 		motifRegion[i] = Dialog.getRadioButton();
 		couleurMotif[i] = Dialog.getRadioButton();
 		couleurFond[i] = Dialog.getRadioButton();
 		
+		//TODO: dessiner et colorier la region directement, pour éviter d'avoir à stocker les motifs et couleurs dans des arrays
 		
-	} 	else {
+	} 	else { //TODO: à supprimer?
 		roiManager("select", i);	
 		roiName = Roi.getName;
 		Dialog.createNonBlocking("");
@@ -289,7 +316,9 @@ couleurArray = newArray("#de8f88","#e1d9d6","#f5dbca","#f3f3f1","#0196b4","#e488
 motif(motifRegion,imageID,width,height,array,couleurMotif,couleurFond,couleurArray,colorMotif,colorFond);
 
 
-//Colormap(array,couleurMotif,couleurFond,couleurArray);
+//Colormap(array,couleurMotif,couleurFond,couleurArray); TODO: ?
+
+//TODO: sauver le schéma
 
   /////////////////////////////////
   ////////////////////////////////
@@ -305,11 +334,12 @@ motif(motifRegion,imageID,width,height,array,couleurMotif,couleurFond,couleurArr
  
 function makeFrontier(k) { 
 	roiManager("add");
+	//TODO: renommer la ligne "vertical border k"
 	Dialog.createNonBlocking("");
 	Dialog.addMessage(" Déplacer les points", 20, "black");
 	Dialog.show();
 	roiManager("add");
-	roiManager("Select",(roiManager("count")-1));
+	roiManager("Select",(roiManager("count")-1)); //TODO: à supprimer?
 	roiManager("select", k+1);
 	roiManager("delete");
 }
@@ -331,15 +361,15 @@ function regionOfInterest (choosenLong,roiSize){
 		if (choosenLong[o] == "oui") {	
 			name = RoiManager.getIndex("region " +(o+1));
 			longName = RoiManager.getIndex("region " + (o+1)+ " longitudinale");
-			cross = newArray(2);
+			cross = newArray(2); //TODO: newArray(name, longName)
 			cross [0] = name;
 			cross [1] = longName;
-			roiManager("Select",(roiManager("count")-1));
+			roiManager("Select",(roiManager("count")-1)); //TODO: à supprimer?
 			
 		
 			roiManager("Select",cross);
 			roiManager("AND");
-			//roiManager("Select",(roiManager("count")-1));
+			//roiManager("Select",(roiManager("count")-1)); //TODO: à supprimer?
 			roiManager("Add");
 			cross [1] = (roiManager("count")-1) ;
 			roiManager("Select",cross);
@@ -368,7 +398,7 @@ function longi(k){
 	setTool("Rectangle");
 	run("Select None");
 	Dialog.createNonBlocking("");
-	Dialog.addMessage(" Tracer le rectangle longitudinale", 20, "black");
+	Dialog.addMessage(" Tracer le rectangle longitudinale", 20, "black"); //TODO: indiquer dans quelle région
 	Dialog.show();
 	roiManager("add");
 	roiManager("Select",(roiManager("count")-1));
@@ -397,16 +427,16 @@ function Colormap(array,couleurMotif,couleurFond,couleurArray,colorMotif,colorFo
 }
 
 function motif(motifRegion,imageID,width,height,array,couleurMotif,couleurFond,couleurArray,colorMotif,colorFond) {
-	for (o = 0; o <= (roiManager("count")-1) ; o++) {
+	for (o = 0; o <= (roiManager("count")-1) ; o++) { 
 		roiManager("select", o);
 		Colormap(array,couleurMotif,couleurFond,couleurArray,colorMotif,colorFond);
-		if (motifRegion[o] == "uniforme") {
+		if (motifRegion[o] == "uniforme") { //TODO: if (motifRegion[o] == motifs[3]) {
 			setColor(colorMotif[o]);
 			run("Fill", "slice");
 			continue;
 		}
 		
-		if (motifRegion[o] == "barres") {
+		if (motifRegion[o] == "barres") { //TODO: else if (motifRegion[o] == motifs[0]) {
 			roiManager("add");
 			
 			
@@ -427,7 +457,7 @@ function motif(motifRegion,imageID,width,height,array,couleurMotif,couleurFond,c
 			setBatchMode(false);	
 		}
 		
-		if (motifRegion[o] == "ecailles") {
+		if (motifRegion[o] == "ecailles") { //TODO: idem
 			roiManager("add");
 			setBatchMode(true);
 			spacing = 500/15;
@@ -450,13 +480,13 @@ function motif(motifRegion,imageID,width,height,array,couleurMotif,couleurFond,c
 			run("Make Montage...", "columns=1 rows=2 scale=1");
 			rename("scales");
 			close("Stack");
-			run("Tile");
+			run("Tile"); //TODO: à supprimer?
 			applyMotif(imageID);
 			setBatchMode(false);
 			
 		}
 		
-		if (motifRegion[o] == "taches") {
+		if (motifRegion[o] == "taches") { //TODO: idem
 			
 			roiManager("add");
 			setBatchMode(true);

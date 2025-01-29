@@ -4,8 +4,6 @@
 ![image_oiseau_petit-1](https://github.com/user-attachments/assets/b855764d-54d1-4f12-b404-28302a39d4a9)
 
 
-
-
 * **Developed by:** Thomas & Héloïse
 * **Developed for:** Manceau Lab
 * **Team:** Manceau
@@ -29,7 +27,8 @@ Flat birds RGB images, a ruler is needed on the image for calibration.
 
 
 ### Dependencies
-csv file with Orders and Families
+
+csv file with Order and families
 
 ### Version history
 

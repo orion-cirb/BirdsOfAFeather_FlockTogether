@@ -1,65 +1,81 @@
 /*
- * Description: transforms images of birds into rectangular boxes with patterns and colors
+ * Description: A tool that helps transforming birds pictures into drawings that highlight borders, patterns, and colors.
  * Developed for: Carole, Manceau's team
- * Author:Thomas Caille @ ORION-CIRB 
- * Date: January 2025
+ * Author: Thomas Caille & Héloïse Monnet @ ORION-CIRB 
+ * Date: February 2025
  * Repository: https://github.com/orion-cirb/BirdsOfAFeather_FlockTogether
- * Dependencies: orders_families.csv file and the color palette available on github
+ * Dependencies: orders_families.csv and color_palette.png files available on GitHub repository
 */
 
 
-/* TODO:
- * Texte en anglais (dans boîtes de dialogue, fenetres pop-up, ROI Manager, fichier CSV) 
- * faire deux points à la place de la ligne pour la calibration
- * Fichier CSV, à améliorer, rajouter des variables
- *
+/* TODO: 
+ * Pour une meilleure lisibilité: 
+ * 		Noms de variables plus explicites :)
+ * 		Pour le nom des variables, fonctions, etc, se décider entre: imgName ou img_name
+ * 		setName(a, b, c) plutot que setName(a,b,c)
+ * 		function setName(a) { plutot que function setName (a){
+ * 		setPosition(x+1, y+1) plutot que setPosition((x+1), (y+1))
  */
 
-/////////////VARIABLES//////////////////
-sizeX = 50 ;
-couleurMotif = 0;
-couleurFond = 0;
-colorMotif = 0;
-colorFond = 0;
 
-array = newArray(6*6);
-X = newArray(0);
-Y = newArray(0);
+/////////////// GLOBAL VARIABLES ///////////////
+noYesArray = newArray("No", "Yes"); 
 
-items = newArray("yes","no"); 
-verticalBoundariesTypes = newArray("Line","U","U inverse","V","V inverse"); 
-motifs = newArray("Bars","Scales","Spots","uniforme");
+drawingWidthPix = 500;
+drawingHeightPix = 250;
 
-////////////////////////////////////////
+verticalBoundariesShapes = newArray("Line", "V", "Inverted V", "U", "Inverted U");
+
+patternsTypes = newArray("Uniforme", "Bars", "Scales", "Spots");
+colorsLabel = split("A1,B1,C1,D1,E1,F1,A2,B2,C2,D2,E2,F2,A3,B3,C3,D3,E3,F3,A4,B4,C4,D4,E4,F4,A5,B5,C5,D5,E5,F5,A6,B6,C6,D6,E6,F6",",");
+colorsHexa = newArray("#f3cf55","#e9cec3","#e7e1e1","#c99486","#c3d0e3","#5a7892","#dfb869","#d7b38f","#dfd9d9","#e08276","#819bc0","#74baaf","#92b798","#cc9264","#8f8989","#c85250","#7d7fa6","#69aabc","#aabc66","#985b3f","#636260","#f79443","#ca8298","#0087a7","#4d945c","#704032","#373735","#f45f35","#c4548e","#3f5493","#4d623b","#49342f","#212121","#b22825","#542e5f","#2b357a");
+/////////////////////////////////////////////////
 
 
 // Retrieve list of orders
-orders_families_dir = getDirectory("Choose the Directory with the orders_families.csv file ");
+orders_families_dir = getDirectory("Choose directory with orders_families.csv file");
 orders_families_path = orders_families_dir + "orders_families.csv"; 
 orders_families = Table.open(orders_families_path);  
 orders = split(Table.headings, "\t");
 close("orders_families.csv");
 
-Dir = getDirectory("Choose an image Directory ");
-inputFiles = getFileList(Dir);
-outDir = Dir  + "Results"+ File.separator();
-if (!File.isDirectory(outDir)) {File.makeDirectory(outDir);}
-if (!File.exists(outDir + "results_global.csv")) {
-			fileResultsGlobal = File.open(outDir + "results_global.csv");
-		print(fileResultsGlobal, "Image name,Order,Family,Genus,Species,Subspecies,Sex,Experimenter,nbVerticalBoundaries");
-		File.close(fileResultsGlobal);
-		}   
-for (f = 0; f < inputFiles.length; f++) {
-	if (endsWith(inputFiles[f], ".JPG") ||endsWith(inputFiles[f], ".tiff") ||endsWith(inputFiles[f], ".png") || endsWith(inputFiles[f], ".jpg")) {
+// Ask for input directory
+inputDir = getDirectory("Choose images directory");
+
+// Get all files in the input directory
+inputFiles = getFileList(inputDir);
+
+// Create results directory (if it does not already exist)
+outputDir = inputDir + "Results" + File.separator();
+if (!File.isDirectory(outputDir)) {
+	File.makeDirectory(outputDir);
+}
+
+// Create results files (if they do not already exist)
+globalResultsFilePath = outputDir + "globalResults.csv";
+regionsResultsFilePath = outputDir + "regionsResults.csv";
+if (!File.exists(globalResultsFilePath)) {
+	resultsFile = File.open(globalResultsFilePath);
+	print(resultsFile, "Image name,Order,Family,Genus,Species,Subspecies,Sex,Experimenter,Drawing width (mm),Drawing height (mm)");
+	File.close(resultsFile);
+	
+	resultsFile = File.open(regionsResultsFilePath);
+	print(resultsFile, "Image name,Region ID,Boundary shape,X1,Y1,X2,Y2,X3,Y3,Pattern type,Background color,Pattern color,Crossed regions");
+	File.close(resultsFile);
+}
 		
-		rootname = File.getNameWithoutExtension(inputFiles[f]);	
-		if ( File.exists(outDir+rootname+".png") ) {
+// Loop through all files in input directory	
+for (f = 0; f < inputFiles.length; f++) {
+	if (endsWith(inputFiles[f], ".JPG") || endsWith(inputFiles[f], ".jpg") || endsWith(inputFiles[f], ".png") || endsWith(inputFiles[f], ".tiff")) {
+		
+		// If drawing already exists for this image in output directory, image is skipped
+		rootName = File.getNameWithoutExtension(inputFiles[f]);
+		if (File.exists(outputDir+rootName+".png")) {
 			continue;
 		}
 		
-		open(Dir + inputFiles[f]);   
-		imageName = getTitle();
-
+		// Open image
+		open(inputDir + inputFiles[f]);
 
 		// Dialog box to get order
 		Dialog.create("Select order");
@@ -91,395 +107,446 @@ for (f = 0; f < inputFiles.length; f++) {
 		sex = Dialog.getChoice();
 		experimenter = Dialog.getString();
 		
-		// Start up process
+		// START DRAWING PROCESS
 		run("Select None");
 		roiManager("reset");
-		setOption("Show All",false);
+		setOption("Show All", false);
 		
-		// Dialog box asking head direction
+		// Dialog box asking for head direction
 		Dialog.createNonBlocking("");
-		Dialog.addRadioButtonGroup("Tête à gauche ?", items,1,2,"yes")
+		Dialog.addRadioButtonGroup("Head on the right?", noYesArray, 1, 2, noYesArray[0]);
 		Dialog.show();
 		orientation = Dialog.getRadioButton();
-		if (orientation == items[1]) {
+		// Rotate image such that head is always on the left
+		if (orientation == noYesArray[1]) {
 			run("Rotate... ", "angle=180 grid=1 interpolation=Bilinear");
 		}
 		
-		// Dialog box for calibration
-		setTool("line"); 					
+		// Dialog box asking for image calibration
+		setTool("multipoint"); 					
 		Dialog.createNonBlocking("");
-		Dialog.addMessage(" Draw 1 cm line ", 20, "black");
+		Dialog.addMessage("Place 2 points at a distance of 1 cm apart");
 		Dialog.show();
-		getLine(x1, y1, x2, y2, lineWidth);
-		calibration(x1,y1,x2,y2);
+		// Calibrate the image depending on the 2 points drawn by the user
+		getSelectionCoordinates(xpoints, ypoints);
+	 	length = Math.sqrt(Math.pow(xpoints[0]-xpoints[1], 2) + Math.pow(ypoints[0]-ypoints[1], 2));
+	 	run("Set Scale...", "distance="+length+" known=10 unit=mm");
+	 	run("Select None");
 		
-		//Dialog box for Points Of Interest
+		// Dialog box asking for landmarks
 		setTool("multipoint");
-		Dialog.createNonBlocking("Place points ");
-		Dialog.addMessage("1           2             3 \nx           x             x \n                       \n                           \n                           \n                       \nx           x             x \n6           5             4 ", 30, "black"); //TODO: décrire quels points doivent etre places et dans quel ordre
+		Dialog.createNonBlocking("");
+		Dialog.addMessage("Place landmarks:");
+		Dialog.addMessage("   1    2    3    4\n   x    x    x    x\n    \n   x    x    x    x\n   8    7    6    5");
 		Dialog.show();
 		getSelectionCoordinates(xpoints, ypoints);
-		Array.getStatistics(xpoints,x_min,x_max,mean,stdDev);
-		Array.getStatistics(ypoints,y_min,y_max,mean,stdDev);
+		// Check that landmarks on the neck and on the tail have the same x-position
+		xNeck = (xpoints[0] + xpoints[7]) / 2;
+		xpoints[0] = xNeck;
+		xpoints[7] = xNeck;
+		xTail = (xpoints[3] + xpoints[4]) / 2;
+		xpoints[3] = xTail;
+		xpoints[4] = xTail;
+		// Create drawing by cropping image around landmarks
+		Array.getStatistics(xpoints, x_min, x_max, mean, stdDev);
+		Array.getStatistics(ypoints, y_min, y_max, mean, stdDev);
+		makeRectangle(x_min, y_min, x_max-x_min, y_max-y_min);
+		run("Crop");
 		
-		// Get coordinates and make a rectangle 
-		makeRectangle(x_min, y_min,(x_max)-(x_min),(y_max)-(y_min));
-		run("Duplicate...", " ");
+		// Retrieve drawing infos  
+		List.setMeasurements;
+		imgWidthMm = List.getValue("Width");
+		imgHeightMm = List.getValue("Height");
+		
+		// Save parameters in globalResults.csv file
+		File.append(rootName+","+order+","+family+","+genus+","+species+","+subspecies+","+sex+","+experimenter+","+imgWidthMm+","+imgHeightMm, globalResultsFilePath);
+		
+		// Scale drawing to fixed size
+		run("Scale...", "x=- y=- width="+drawingWidthPix+" height="+drawingHeightPix+" interpolation=Bilinear average create");
+		setVoxelSize(1, 1, 1, "pix");
+		run("RGB Color");
+		imageID = getImageID();
 		close("\\Others");
 		
 		// CREATE VERTICAL REGIONS
-		// Dialog box to retrieve the vertical boundaries numbers
+		// Dialog box asking for number of vertical boundaries
 		Dialog.createNonBlocking("");
-		Dialog.addNumber("number of vertical boundaries", 1); 
+		Dialog.addNumber("Number of vertical boundaries", 1); 
 		Dialog.show();
-		verticalBoundaries = Dialog.getNumber(); 
+		verticalBoundariesNb = Dialog.getNumber(); 
 		
-		// Loop asking the type of boundary
-		if (verticalBoundaries > 0) {
+		// Dialog box asking for the shape of each vertical boundary
+		if (verticalBoundariesNb > 0) {
 			Dialog.create("");
-			Dialog.addMessage(" type of vertical boundary : ", 20, "black");
-			for (i = 1; i <= verticalBoundaries; i++) { 
-				Dialog.addChoice(" Vertical boundary "+i+" :", verticalBoundariesTypes)		
+			Dialog.addMessage("Shape of vertical boundaries:");
+			for (i = 1; i <= verticalBoundariesNb; i++) { 
+				Dialog.addChoice("Vertical boundary "+i+":", verticalBoundariesShapes)		
 			}
 			Dialog.show();
 		}
-		// Retrieve news info from the image  	
-		choosen = newArray(verticalBoundaries); 
-		height = getHeight(); 
-		width = getWidth(); 
-		imageID = getImageID(); 
-		close("\\Others");
-		
-		// Get the boundary type
-		for (j = 0; j < verticalBoundaries; j++) {
-			choosen[j] = Dialog.getChoice();
+		verticalBoundaries = newArray(verticalBoundariesNb); 
+		for (i = 0; i < verticalBoundariesNb; i++) {
+			verticalBoundaries[i] = Dialog.getChoice();
 		}
 		
-		// Make line depending on the boundary type, also make the first line at 0,0 and the last at width,height
-		makeLine(0, 0,0, height);
+		// Create vertical boundaries
+		setTool("rectangle");
+		for (i = 0; i < verticalBoundariesNb; i++) {
+			setOption("Show All",true);
+			createVerticalBoundary(i, verticalBoundaries[i]);
+		 	moveVerticalBoundary(i);
+		 	checkVerticalBoundary(i);
+		}
+		
+		// Add first boundary, on the very left of the drawing
+		makeLine(0, 0, 0, drawingHeightPix);
 		roiManager("add");
-		roiManager("select", (roiManager("count")-1));
-		roiManager("rename", "boundary : 0");
-		if (lengthOf(choosen) > 0) {	
-			for (k = 0; k < verticalBoundaries; k++) {	
-				setOption("Show All",true);
-			 	if (choosen [k] == verticalBoundariesTypes[0]) { 
-			 		 makeLine((sizeX*(k+1)),0,(sizeX*(k+1)),height);
-			 		
-			 	}
-			 	if (choosen [k] == verticalBoundariesTypes[1] || choosen [k] == verticalBoundariesTypes[2]) { 
-			 		 makeLine((sizeX*j),0,(sizeX*j+50),(height/3),(sizeX*j+50),(height/1.5),(sizeX*j),height);
-			 		 
-				 }
-				 if (choosen [k] == verticalBoundariesTypes[3] || choosen [k] == verticalBoundariesTypes[4]) { 
-			  		makeLine((sizeX*j),0,(sizeX*j+50),(height/2),(sizeX*j),height);	
-			  		
-				 }
-			 	makeFrontier(k);
-			}
-		}
-		// Width-1 because if to large then line is place on the middle of the image
-		makeLine((getWidth()-1), 0,(getWidth()-1), getHeight()); 
+		roiManager("select", roiManager("count")-1);
+		roiManager("rename", "Boundary 0");
+		// Add last boundary, on the very right of the drawing
+		makeLine(drawingWidthPix, 0, drawingWidthPix, drawingHeightPix);
 		roiManager("add");
-		roiNumber = roiManager("count")-1 ; 
-		
-		// Loop to relocate all the line, fitting the border of the image in Y and the X axis 
-		for (l = 0; l <= roiNumber ; l++) {
-			roiManager("select", l);
-			Roi.getCoordinates(xpoints, ypoints); 
-			sizeY = lengthOf(ypoints);
-			xpoints[0] = (xpoints[(sizeY-1)] + xpoints[0]) /2;
-			ypoints[0] = 0;
-			xpoints[(sizeY-1)] = xpoints[0];	
-			ypoints[(sizeY-1)] = height;	
-			if (sizeY == 4) {
-				xpoints[1] = xpoints[2];
-				ypoints[1] = (height/3);
-				ypoints[2] = (height/1.5);
-				makeLine(xpoints[0], ypoints[0], xpoints[1], ypoints[1], xpoints[2], ypoints[2],xpoints[3],ypoints[3]);
-				roiManager("add");	
-			}
-			else if (sizeY == 3) { 
-				ypoints[1] = (height/2);
-				makeLine(xpoints[0], ypoints[0], xpoints[1], ypoints[1], xpoints[2], ypoints[2]);
-				roiManager("add");	
-			}
-			else if (sizeY == 2) {
-				makeLine(xpoints[0], ypoints[0], xpoints[1], ypoints[1]);
-				roiManager("add");			
-			}
-		}
-		// Delete the old lines misplaced 
-		roiManager("select",Array.getSequence(roiNumber+1));
-		roiManager("delete");
-		// Function to make polygon from lines
-		borderDot (Y,X,l,roiNumber);
-		roiArray = newArray(roiNumber);
-		choosenLong = newArray(verticalBoundaries+1);
-		// Function to rename polygon aka region
-		renameROI(roiNumber);
-		
-		
-		// CREATE LONGITUDINAL SUBREGIONS
-		setOption("Show All",true);
-		Dialog.createNonBlocking("");
-		Dialog.addMessage("frontière longitudinale", 20, "black");
-		for (i = 1; i <= (verticalBoundaries+1); i++) { 
-			Dialog.addRadioButtonGroup(" Region : "+i, items,1,2,"no")
-		}
-		Dialog.show();
-		
-		for (j = 0; j < verticalBoundaries+1; j++) {
-			choosenLong[j] = Dialog.getRadioButton();
-		}
-		for (k= 0; k < verticalBoundaries+1; k++){
-			if (choosenLong[k] == "yes") {
-				longi(k);
-			}
-		}
-		
-		regionOfInterest(choosenLong,roiNumber);
-		
-		// SCALE SCHEME AND ROIS TO FIXED SIZE
-		
-		run("Select None");
-		run("Scale...", "x=- y=- width=500 height=250 interpolation=Bilinear average create");
-		// Rescale the rois to covert all the image 
-		RoiManager.scale(500/width,250/height,false)
-		close("\\Others");
-		imageID = getImageID();
-		height = getHeight();
-		width = getWidth();
-		run("RGB Color");
+		roiManager("select", roiManager("count")-1);
+		roiManager("rename", "Boundary "+verticalBoundariesNb+1);
 		roiManager("sort");
-		motifRegion = newArray(roiManager("count")-1);
-		// Call the function gridArray 
-		gridArray(array);
 		
-		// Create an array with all the colors inside the color range reference in hexadecimal format 
-		couleurArray = newArray("#f3cf55","#e9cec3","#e7e1e1","#c99486","#c3d0e3","#5a7892","#dfb869","#d7b38f","#dfd9d9","#e08276","#819bc0","#74baaf","#92b798","#cc9264","#8f8989","#c85250","#7d7fa6","#69aabc","#aabc66","#985b3f","#636260","#f79443","#ca8298","#0087a7","#4d945c","#704032","#373735","#f45f35","#c4548e","#3f5493","#4d623b","#49342f","#212121","#b22825","#542e5f","#2b357a");
+		//TODO: calculer X1,Y1,X2,Y2,X3,Y3 pour chaque vertical boundary dans le nouveau système de coordonnées
+		//		dans un array, stocker "boundary shape,X1,Y1,X2,Y2,X3,Y3" pour chaque vertical boundary
+	
+		// Create vertical regions from vertical boundaries
+		verticalRegionsNb = verticalBoundariesNb+1;
+		for (i = 0; i < verticalRegionsNb; i++) {
+			createVerticalRegion(i);
+		}
+		roiManager("select", Array.getSequence(verticalBoundariesNb+2));
+		roiManager("delete");
 		
-		// Loop through all region and ask for the pattern and the color inside the region
+		// CREATE LONGITUDINAL REGIONS
+		// Dialog box asking for number of longitudinal regions
+		Dialog.createNonBlocking("");
+		Dialog.addNumber("Number of longitudinal regions", 0); 
+		Dialog.show();
+		longitudinalRegionsNb = Dialog.getNumber();
+		
+		// Dialog box asking for vertical regions crossed by each longitudinal region
+		if (longitudinalRegionsNb > 0) {
+			regLabels = newArray(0);
+			regDefaults = newArray(0);
+			for(i = 1; i <= verticalRegionsNb; i++) {
+				regLabels = Array.concat(regLabels, newArray("Region "+i));
+				regDefaults = Array.concat(regDefaults, false);
+			}
+			
+			Dialog.create("");
+			Dialog.addMessage("Select vertical regions crossed by each longitudinal region: ");
+			for (i = 1; i <= longitudinalRegionsNb; i++) { 
+				Dialog.addMessage("Longitudinal region "+i+":");
+				Dialog.addCheckboxGroup(1, verticalRegionsNb, regLabels, regDefaults);
+			}
+			Dialog.show();
+			
+			allCrossedVerticalRegionsBool = newArray(0);
+			for (i = 0; i < longitudinalRegionsNb; i++) {
+				for (j = 0; j < verticalRegionsNb; j++) {
+					allCrossedVerticalRegionsBool = Array.concat(allCrossedVerticalRegionsBool, newArray(Dialog.getCheckbox()));
+				}
+			}
+			//TODO: stocker (dans une list? un array?) quelles régions traverse chaque région
+			
+			for (i = 0; i < longitudinalRegionsNb; i++) {
+				crossedVerticalRegionsBool = Array.slice(allCrossedVerticalRegionsBool, i*verticalRegionsNb, i*verticalRegionsNb+verticalRegionsNb);				
+				crossedVerticalRegionsName = Array.copy(regLabels);
+				for(j = 0; j < verticalRegionsNb; j++) {
+					if(!crossedVerticalRegionsBool[j]) {
+						crossedVerticalRegionsName = Array.deleteValue(crossedVerticalRegionsName, "Region "+j+1);
+					}
+				}
+				
+				drawLongitudinalRegion(i, crossedVerticalRegionsName);
+				subtractLongFromVertRegions(i, crossedVerticalRegionsBool);
+			}
+			roiManager("sort");
+		}
+		
+		// In each region, draw pattern with appropriate background and foreground colors
 		for (i = 0; i <= (roiManager("count")-1); i++) {
 			roiManager("select", i);
 			roiName = Roi.getName;
 			Dialog.createNonBlocking("");
-			Dialog.addMessage("motif de la "+roiName+":                              ", 20, "black");	
+			Dialog.addMessage(roiName+":");
 				
-			Dialog.addRadioButtonGroup("motif :", motifs,1,4,motifs[3]); 
-			Dialog.addRadioButtonGroup("couleur motif:", array, 6 , 6,array[0]);
-			Dialog.addToSameRow(); //TODO: à supprimer?
-			Dialog.addRadioButtonGroup("couleur fond:", array, 6 , 6,array[0]);
+			Dialog.addRadioButtonGroup("Pattern type: ", patternsTypes, 1, 4, patternsTypes[0]); 
+			Dialog.addRadioButtonGroup("Background color: ", colorsLabel, 6, 6, colorsLabel[0]);
+			Dialog.addRadioButtonGroup("Pattern color: ", colorsLabel, 6, 6, colorsLabel[0]);
 			Dialog.show();
-			motifRegion = Dialog.getRadioButton();
-			couleurMotif = Dialog.getRadioButton();
-			couleurFond = Dialog.getRadioButton();
-				
-			motif(motifRegion,imageID,width,height,array,couleurMotif,couleurFond,couleurArray,colorMotif,colorFond);				
+			
+			patternRegion = Dialog.getRadioButton();
+			colorLabelBgRegion = Dialog.getRadioButton();
+			colorLabelPatternRegion = Dialog.getRadioButton();
+			drawPattern(i, imageID, patternRegion, colorLabelBgRegion, colorLabelPatternRegion);	 			
 		}
-		// Save the 500x250 rectangle as .png
-		saveAs("png", outDir + inputFiles[f]);
-		File.append(rootname+","+ order +","+ family +","+ genus +","+species +","+ subspecies +","+ sex +","+experimenter +","+ verticalBoundaries ,outDir + "results_global.csv");
+		
+		// Save parameters in globalResults.csv file
+		File.append(rootName, regionsResultsFilePath); 
+		//TODO: sauver "Image name,Region ID,Boundary shape,X1,Y1,X2,Y2,X3,Y3,Pattern type,Background color,Pattern color,Crossed regions" pour chaque region
+		
+		// Save drawing as .png file
+		saveAs("png", outputDir + inputFiles[f]);
+		
+		// Save ROIs as a .zip file
+		roiManager("deselect");
+		roiManager("Save", outputDir + rootName + ".zip");
+		
+    	roiManager("reset");
+		close("*");
 	}
 }
 
-  /////////////////////////////////
-  ////////////////////////////////
-  ///////// Functions ///////////
-  //////////////////////////////
-  /////////////////////////////
- 
-// Calibrate the image depending on the line draw by the user
- function calibration (x1,y1,x2,y2) {
- 	length = abs(x1-x2);
- 	run("Set Scale...", "distance="+length+" known=10 unit=mm");
- }  
-// Allow the user to move the line and add it to the manager
-function makeFrontier(k) { 
+
+/////////////// FUNCTIONS ///////////////
+
+// Create a vertical boundary of the shape selected by the user
+function createVerticalBoundary(boundId, shape) {
+	//TODO: ajouter V inversé et U inversé
+	shiftX = 50;
+ 	if (shape == verticalBoundariesShapes[0]) { 
+    	makeLine(shiftX*(boundId+1), 0, shiftX*(boundId+1), drawingHeightPix);
+    	
+ 	} else if (shape == verticalBoundariesShapes[1] || shape == verticalBoundariesShapes[2]) { 
+ 		makeLine(shiftX*(boundId+1), 0, shiftX*(boundId+1)+shiftX, drawingHeightPix/2, shiftX*(boundId+1), drawingHeightPix);
+ 		
+	} else if (shape == verticalBoundariesShapes[3] || shape == verticalBoundariesShapes[4]) { 
+    	makeLine(shiftX*(boundId+1), 0, shiftX*(boundId+1)+shiftX, drawingHeightPix/3, shiftX*(boundId+1)+shiftX, drawingHeightPix/1.5, shiftX*(boundId+1), drawingHeightPix);
+	}
+	
 	roiManager("add");
-	roiManager("select", (roiManager("count")-1));
-	roiManager("rename", "boundary : "+(k+1));
-	Dialog.createNonBlocking("");
-	Dialog.addMessage(" Déplacer les points", 20, "black");
-	Dialog.show();
-	roiManager("add");
-	roiManager("select", k+1);
-	roiManager("delete");
+	roiManager("select", boundId);
+	roiManager("rename", "Boundary "+boundId+1);
 }
-// Get the lines coordinates and reverse the first, concatenate them and then make and add the polygon to the manager
-function borderDot (Y,X,l,roiNumber) {
-	for (l = 0; l <roiNumber ; l++) {
-		roiManager("select", l);
-		Roi.getCoordinates(xpoints, ypoints); 
-		Array.reverse(xpoints);
-		Array.reverse(ypoints);
-		
-		roiManager("select", l+1);
-		Roi.getCoordinates(xpoints2, ypoints2); 
-		X = Array.concat(xpoints,xpoints2);
-		Y = Array.concat(ypoints,ypoints2);
-		makeSelection("polygon", X, Y);
+ 
+// Allow the user to move the vertical boundary at the correct position
+function moveVerticalBoundary(boundId) {
+	Dialog.createNonBlocking("");
+	Dialog.addMessage("Place correctly vertical boundary "+boundId+1);
+	Dialog.show();
+	
+	roiManager("add");
+	roiManager("select", boundId);
+	roiManager("delete");
+	roiManager("select", boundId);
+	roiManager("rename", "Boundary "+boundId+1);
+}
+
+// Check position of the vertical boundary
+function checkVerticalBoundary(boundId) {
+	roiManager("select", boundId);
+	Roi.getCoordinates(xpoints, ypoints);
+	pointsNb = xpoints.length;
+	
+	// Check that the vertical border fits the top and bottom edges of the image 
+	xpoints[0] = (xpoints[0] + xpoints[pointsNb-1]) / 2;
+	xpoints[pointsNb-1] = xpoints[0];
+	ypoints[0] = 0;
+	ypoints[pointsNb-1] = drawingHeightPix;
+	// Check that V and U lines are symmetric with respect to X-axis
+	if (pointsNb == 2) {
+		makeLine(xpoints[0], ypoints[0], xpoints[1], ypoints[1]);
+		roiManager("add"); //TODO: le mettre une seule fois après le if plutot que de le repeter 3 fois			
+	} else if (pointsNb == 3) { 
+		ypoints[1] = drawingHeightPix/2;
+		makeLine(xpoints[0], ypoints[0], xpoints[1], ypoints[1], xpoints[2], ypoints[2]);
+		roiManager("add");
+	} else if (pointsNb == 4) {
+		xpoints[1] = xpoints[2];
+		ypoints[1] = drawingHeightPix/3;
+		ypoints[2] = drawingHeightPix/1.5;
+		makeLine(xpoints[0], ypoints[0], xpoints[1], ypoints[1], xpoints[2], ypoints[2], xpoints[3], ypoints[3]);
 		roiManager("add");
 	}
-	roiManager("select",Array.getSequence(roiNumber+1));
-	roiManager("delete");			
+	
+	roiManager("select", boundId);
+	roiManager("delete");
+	roiManager("select", boundId);
+	roiManager("rename", "Boundary "+boundId+1);
 }
-// Rename all the ROI 
-function renameROI (roiNumber) {
-	for (o = 0; o < roiNumber ; o++) {
-		roiManager("select", o);
-		roiManager("rename", "region " + o+1);
-	}
+
+// Create polygon from two vertical boundaries composing it
+function createVerticalRegion(regId) {
+	roiManager("select", regId);
+	Roi.getCoordinates(xpoints, ypoints); 
+	Array.reverse(xpoints);
+	Array.reverse(ypoints);
+	
+	roiManager("select", regId+1);
+	Roi.getCoordinates(xpoints2, ypoints2);
+	
+	X = Array.concat(xpoints, xpoints2);
+	Y = Array.concat(ypoints, ypoints2);
+	makeSelection("polygon", X, Y);
+	roiManager("add");
+	
+	roiManager("select", roiManager("count")-1);
+	roiManager("rename", "Region "+regId+1);
 }
-// Create a new "region" ROI if there is a longitudinal region inside, and delete the old one 
-function regionOfInterest (choosenLong,roiNumber){
-	for (o = 0; o < roiNumber ; o++) {
-		if (choosenLong[o] == items[0]) {	
-			name = RoiManager.getIndex("region " +(o+1));
-			longName = RoiManager.getIndex("region " + (o+1)+ " longitudinale");
-			cross = newArray(name,longName); 
-			roiManager("Select",cross);
-			roiManager("AND");
-			roiManager("Add");
-			cross [1] = (roiManager("count")-1) ;
-			roiManager("Select",cross);
-			roiManager("XOR");
-			roiManager("Add");
-			roiManager("Select",name);
-			roiManager("delete");
-			
-			roiManager("Select",(roiManager("count")-1));
-			roiManager("rename", "region " +(o+1));	
-		}
-	}
-}
-// Dialog box to make the user draw the longitudinal region, and rename it "region ... longitudinal"
-function longi(k){
+
+// Dialog box asking the user to draw longitudinal region
+function drawLongitudinalRegion(longId, crossedVerticalRegionsName) {
 	setTool("Rectangle");
 	run("Select None");
 	Dialog.createNonBlocking("");
-	Dialog.addMessage(" Tracer le rectangle longitudinale de la région"+(k+1), 20, "black"); //TODO: indiquer dans quelle région
+	Dialog.addMessage("Draw rectangle representing longitudinal region "+longId+1);
+	Dialog.addMessage("It should cross "+String.join(crossedVerticalRegionsName));
 	Dialog.show();
 	roiManager("add");
-	roiManager("Select",(roiManager("count")-1));
-	roiManager("rename", "region " + (k+1)+" longitudinale");
+	roiManager("Select", roiManager("count")-1);
+	roiManager("rename", "Region longitudinal "+longId+1);
+	
+	// Check that longitudinal region is symmetric with respect to X-axis
 	List.setMeasurements;
 	centroidY = List.getValue("Y");
-	run("Translate... ", "x=0 y="+ ((height/2)-centroidY));
-	
-	
-}
-// First : Loop and check which color the user choose for motif and background
-// Second : For each motifs (except uniform) create an image with the motif, select the roi on the motif image, copy the motif and paste it on the original image 
-function motif(motifRegion,imageID,width,height,array,couleurMotif,couleurFond,couleurArray,colorMotif,colorFond) {
-	for (b = 0; b < 36; b++) {
-		if (array [b] == couleurMotif){		
-			colorMotif = couleurArray [b];			
-		}
-		if (array [b] == couleurFond){
-			colorFond = couleurArray[b];
-		}
-	}
-	if (motifRegion == motifs[3]) { 
-		setColor(colorMotif);
-		run("Fill", "slice");
-		continue;
-	}
-		
-	if (motifRegion == motifs[0]) { 
-		roiManager("add");
-		setBatchMode(true);
-		spacing = 500/15;
-		size = spacing/3;
-		newImage("bars", "RGB black", 500, 250, 1);
-		Color.setBackground(colorFond);
-		run("Select All");
-		run("Clear", "slice");
-		for (i = 0; i < spacing; i++) {
-			run("Specify...", "width="+size+" height="+500+" x="+size+i*spacing+" y=0");
-			setColor(colorMotif);
-			run("Fill", "slice");
-		}
-			applyMotif(imageID);	
-			setBatchMode(false);	
-	}
-	
-	if (motifRegion == motifs[1]) { 
-		roiManager("add");
-		setBatchMode(true);
-		spacing = 500/15;
-		size = spacing/4;
-		newImage("scales", "RGB black", width, height/2, 1);
-		Color.setBackground(colorFond);
-		run("Select All");
-		run("Clear", "slice");
-		run("Specify...", "width="+size+" height="+height+" x=-"+4*spacing+" y=-"+height/4);
-		run("Rotate...", " angle=45");
-		for (i = 0; i < 4*width/spacing; i++) {
-			run("Translate... ", "x="+spacing+" y=0");
-			setColor(colorMotif);
-			run("Fill", "slice");
-		}
-		run("Select None");
-		run("Duplicate...", " ");
-		run("Flip Vertically");
-		run("Images to Stack", "  title=scales");
-		run("Make Montage...", "columns=1 rows=2 scale=1");
-		rename("scales");
-		close("Stack");
-			
-		applyMotif(imageID);
-		setBatchMode(false);
-	}
-		
-	if (motifRegion == motifs[2]) { 
-			
-		roiManager("add");
-		setBatchMode(true);
-		spacing = (width+height)/20;
-		size = spacing/2;
-		newImage("spots", "RGB black", width, height, 1);
-		Color.setBackground(colorFond);
-		run("Select All");
-		run("Clear", "slice");	
-		for (i = 0; i < width/spacing; i++) {
-			for (j = 0; j < height/spacing; j++) {
-				if(i%2 == 0) {
-					run("Specify...", "width="+size+" height="+size+" x="+i*spacing+" y="+j*spacing+" oval");
-				} else {
-					run("Specify...", "width="+size+" height="+size+" x="+i*spacing+" y="+size+j*spacing+" oval");
-				}				
-				setColor(colorMotif);
-				run("Fill", "slice");									
-			}
-		}
-			applyMotif(imageID);
-			setBatchMode(false);		
-	}	
-}
-// Create an array like "A1, B1, C1 ..."
-function gridArray (array) {
-	index =0;
-	letters = "ABCDEF";
-	for (j = 1; j <= 6; j++) {
-		
-		for (i = 0; i < 6; i++) {
-			letter = substring(letters, i, i+1);	
-			array[index] = letter + (j);
-			index++;
-			
-		}	
-	}
-}
-// Copy and paste motifs on an image 
-function applyMotif (imageID) {
-	run("Select None");
-	roiManager("select", (roiManager("count")-1));
-	roiManager("delete");
-	run("Copy");
-	run("Close");
-	roiManager("deselect");
-	selectImage(imageID);	
-	run("Paste");
+	run("Translate... ", "x=0 y="+drawingHeightPix/2 - centroidY);
 }
 
+// Subtract longitudinal region from vertical regions it crosses
+function subtractLongFromVertRegions(longId, crossedVerticalRegionsBool) {
+	for (i = 0; i < crossedVerticalRegionsBool.length; i++) {
+		
+		regId = RoiManager.getIndex("Region "+i+1);
+		longRegId = RoiManager.getIndex("Region longitudinal "+longId+1);
+		ids = newArray(regId, longRegId);
+		
+		// Create intersection of vertical region and longitudinal region
+		roiManager("Select", ids);
+		roiManager("AND");
+		
+		if(getValue("selection.size") != 0) {
+			roiManager("Add");
+			
+			if(crossedVerticalRegionsBool[i]) {
+				// Subtract obtained ROI from vertical region
+				ids[1] = roiManager("count")-1;
+				roiManager("Select", ids);
+				roiManager("XOR");
+				roiManager("Add");
+				
+				// Delete old full vertical region
+				roiManager("Select", regId);
+				roiManager("delete");
+				roiManager("Select", roiManager("count")-1);
+				roiManager("rename", "Region "+i+1);
+			} else {
+				// Subtract obtained ROI from longitudinal region		
+				ids[0] = roiManager("count")-1;
+				roiManager("Select", ids);
+				roiManager("XOR");
+				roiManager("Add");
+				
+				// Delete old full longitudinal region
+				roiManager("Select", ids);
+				roiManager("delete");
+				roiManager("Select", roiManager("count")-1);
+				roiManager("rename", "Region longitudinal "+longId+1);
+			}
+		}
+	}
+}
+
+// Draw region with appropriate pattern, background color and pattern color
+function drawPattern(roiID, imageID, patternRegion, colorLabelBgRegion, colorLabelPatternRegion) {
+	// Retrieve which colors the user chose for background and pattern
+	colorHexaBgRegion = "";
+	colorHexaPatternRegion = "";
+	for (i = 0; i < colorsLabel.length; i++) {
+		if (colorLabelBgRegion == colorsLabel[i]){
+			colorHexaBgRegion = colorsHexa[i];
+		}
+		if (colorLabelPatternRegion == colorsLabel[i]){		
+			colorHexaPatternRegion = colorsHexa[i];			
+		}
+	}
+	
+	if (patternRegion == patternsTypes[0]) {
+		setColor(colorHexaBgRegion);
+		run("Fill", "slice");
+	} else {
+		// Draw pattern with appropriate background and pattern colors on a new image, copy & paste it on the drawing
+		setBatchMode(true);
+		
+		if (patternRegion == patternsTypes[1]) {
+			newImage("bars", "RGB black", drawingWidthPix, drawingHeightPix, 1);
+			
+			// Color background
+			Color.setBackground(colorHexaBgRegion);
+			run("Select All");
+			run("Clear", "slice");
+			
+			// Draw and color pattern
+			spacing = drawingWidthPix/15;
+			size = spacing/3;
+			for (i = 0; i < spacing; i++) {
+				run("Specify...", "width="+size+" height="+drawingWidthPix+" x="+size+i*spacing+" y=0");
+				setColor(colorHexaPatternRegion);
+				run("Fill", "slice");
+			}
+			
+		} else if (patternRegion == patternsTypes[2]) {
+			newImage("scales", "RGB black", drawingWidthPix, drawingHeightPix/2, 1);
+			
+			// Color background
+			Color.setBackground(colorHexaBgRegion);
+			run("Select All");
+			run("Clear", "slice");
+			
+			// Draw and color pattern
+			spacing = drawingWidthPix/15;
+			size = spacing/4;
+			run("Specify...", "width="+size+" height="+drawingHeightPix+" x=-"+4*spacing+" y=-"+drawingHeightPix/4);
+			run("Rotate...", " angle=45");
+			for (i = 0; i < 4*drawingWidthPix/spacing; i++) {
+				run("Translate... ", "x="+spacing+" y=0");
+				setColor(colorHexaPatternRegion);
+				run("Fill", "slice");
+			}
+			run("Select None");
+			run("Duplicate...", " ");
+			run("Flip Vertically");
+			run("Images to Stack", "  title=scales");
+			run("Make Montage...", "columns=1 rows=2 scale=1");
+			close("Stack");
+			
+		} else if (patternRegion == patternsTypes[3]) {
+			newImage("spots", "RGB black", drawingWidthPix, drawingHeightPix, 1);
+			
+			// Color background
+			Color.setBackground(colorHexaBgRegion);
+			run("Select All");
+			run("Clear", "slice");	
+			
+			// Draw and color pattern
+			spacing = (drawingWidthPix+drawingHeightPix)/20;
+			size = spacing/2;
+			for (i = 0; i < drawingWidthPix/spacing; i++) {
+				for (j = 0; j < drawingHeightPix/spacing; j++) {
+					if(i%2 == 0) {
+						run("Specify...", "width="+size+" height="+size+" x="+i*spacing+" y="+j*spacing+" oval");
+					} else {
+						run("Specify...", "width="+size+" height="+size+" x="+i*spacing+" y="+size+j*spacing+" oval");
+					}				
+					setColor(colorHexaPatternRegion);
+					run("Fill", "slice");									
+				}
+			}
+		}
+		
+		// Copy and paste pattern on drawing 
+		roiManager("select", roiID);
+		run("Copy");
+		run("Close");
+		selectImage(imageID);	
+		run("Paste");
+		
+		setBatchMode(false);	
+	}
+}
+
+/////////////////////////////////////////

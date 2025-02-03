@@ -1,6 +1,6 @@
 /*
  * Description: A tool that helps transforming birds pictures into drawings that highlight borders, patterns, and colors.
- * Developed for: Carole, Manceau's team
+ * Developed for: Carole & Paul, Manceau's team
  * Author: Thomas Caille & Héloïse Monnet @ ORION-CIRB 
  * Date: February 2025
  * Repository: https://github.com/orion-cirb/BirdsOfAFeather_FlockTogether
@@ -26,7 +26,7 @@ drawingHeightPix = 250;
 
 verticalBoundariesShapes = newArray("Line", "V", "Inverted V", "U", "Inverted U");
 
-patternsTypes = newArray("Uniforme", "Bars", "Scales", "Spots");
+patternsTypes = newArray("Uniform", "Bars", "Scales", "Spots");
 colorsLabel = split("A1,B1,C1,D1,E1,F1,A2,B2,C2,D2,E2,F2,A3,B3,C3,D3,E3,F3,A4,B4,C4,D4,E4,F4,A5,B5,C5,D5,E5,F5,A6,B6,C6,D6,E6,F6",",");
 colorsHexa = newArray("#f3cf55","#e9cec3","#e7e1e1","#c99486","#c3d0e3","#5a7892","#dfb869","#d7b38f","#dfd9d9","#e08276","#819bc0","#74baaf","#92b798","#cc9264","#8f8989","#c85250","#7d7fa6","#69aabc","#aabc66","#985b3f","#636260","#f79443","#ca8298","#0087a7","#4d945c","#704032","#373735","#f45f35","#c4548e","#3f5493","#4d623b","#49342f","#212121","#b22825","#542e5f","#2b357a");
 /////////////////////////////////////////////////

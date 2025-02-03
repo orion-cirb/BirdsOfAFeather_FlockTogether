@@ -1,35 +1,35 @@
 # BirdsOfAFeather_FlockTogether
 
-
 ![image_oiseau_petit-1](https://github.com/user-attachments/assets/b855764d-54d1-4f12-b404-28302a39d4a9)
 
 
 * **Developed by:** Thomas & Héloïse
-* **Developed for:** Manceau Lab
+* **Developed for:** Carole & Paul
 * **Team:** Manceau
-* **Date:** January 2025
+* **Date:** February 2025
 * **Software:** Fiji
 
 
 ### Images description
 
-Flat birds RGB images, a ruler is needed on the image for calibration.
+RGB images of birds. A ruler is needed on the image for calibration.
 
      
 ### Macro description
 
-* Open a .csv table with birds Order as the column header and the associated families below
-* Dialog box pops up and user selects Order, Families, Genus, Species, Subspecies, Sex and Experimenter
-* User must draw a line to calibrate the image, make 6 points on the bird, specify the number of vertical boundaries
-* A bounding box is created with the 6 points selected, and the user selects the type of boundaries (U,V,line)
-* Create ROIs based on the boundaries, ask the user if there is a longitudinal bondary and where it is located
-* Ask the user the pattern inside the ROI (Uniform, Scales, Bars, Spots) and the color of the pattern and background 
-
+1. Indicate the bird's order, family, genus, species, subspecies, and sex.
+2. Place two points 1 cm apart on the ruler to calibrate the image.
+3. Place 8 landmarks on the bird, crop the image around them, and scale it to a fixed size of 500 × 250 pixels.
+4. Specify the number of vertical boundaries and their shape (Line, V, Inverted V, U, or Inverted U).
+5. Adjust each vertical boundary to its correct position and create vertical regions accordingly.
+6. Specify the number of longitudinal regions and which vertical regions each longitudinal region crosses.
+7. Draw each longitudinal region and subtract it from the vertical regions it crosses.
+8. For each region (vertical or longitudinal), select the pattern (Uniform, Bars, Scales, or Spots) and specify the colors of both the pattern and the background.
 
 ### Dependencies
 
-csv file with Order and families
+*orders_families.csv* and *color_palette.png* files
 
 ### Version history
 
-Version 0.1 released on January 24, 2025.
+Work in progress

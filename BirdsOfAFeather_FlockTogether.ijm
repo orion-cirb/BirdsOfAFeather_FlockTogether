@@ -2,30 +2,20 @@
  * Description: A tool that helps transforming birds pictures into drawings that highlight borders, patterns, and colors.
  * Developed for: Carole & Paul, Manceau's team
  * Author: Thomas Caille & Héloïse Monnet @ ORION-CIRB 
- * Date: February 2025
+ * Date: March 2025
  * Repository: https://github.com/orion-cirb/BirdsOfAFeather_FlockTogether
  * Dependencies: orders_families.csv and color_palette.png files available on GitHub repository
 */
 
 
-/* TODO: 
- * 			Test BUG 
- * 			vérifier les variables inutilisées
- * 			vérifier si jamais il manque des fichiers dans le répertoire (BUG, ne fait rien ...)
- * 			faire des tests sur quelques oiseaux
- * 			vérifier la cohérence des noms des variables ainsi que leur mieu de déclaration
- * 		
- */
-
-
 /////////////// GLOBAL VARIABLES ///////////////
 noYesArray = newArray("No", "Yes"); 
 
+dialogPositionX = 2200;
+dialogPositionY = 540;
+
 drawingWidthPix = 500;
 drawingHeightPix = 250;
-colorHexaBgRegion = "";
-colorHexaPatternRegion = "";
-
 
 verticalBoundariesShapes = newArray("Line", "V", "Inverted V", "U", "Inverted U");
 
@@ -36,14 +26,14 @@ colorsHexa = newArray("#f3cf55","#e9cec3","#e7e1e1","#c99486","#c3d0e3","#5a7892
 
 
 // Retrieve list of orders
-orders_families_dir = getDirectory("Choose directory with orders_families.csv file");
+orders_families_dir = getDirectory("Choose directory containing orders_families.csv file");
 orders_families_path = orders_families_dir + "orders_families.csv"; 
 orders_families = Table.open(orders_families_path);  
 orders = split(Table.headings, "\t");
 close("orders_families.csv");
 
 // Ask for input directory
-inputDir = getDirectory("Choose images directory");
+inputDir = getDirectory("Choose directory containing images");
 
 // Get all files in the input directory
 inputFiles = getFileList(inputDir);
@@ -59,11 +49,11 @@ globalResultsFilePath = outputDir + "globalResults.csv";
 regionsResultsFilePath = outputDir + "regionsResults.csv";
 if (!File.exists(globalResultsFilePath)) {
 	resultsFile = File.open(globalResultsFilePath);
-	print(resultsFile, "Image name,Order,Family,Genus,Species,Subspecies,Sex,Experimenter,Drawing width (mm),Drawing height (mm)");
+	print(resultsFile, "Image name,Order,Family,Genus,Species,Subspecies,Sex,Experimenter,Position,Drawing width (mm),Drawing height (mm)");
 	File.close(resultsFile);
 	
 	resultsFile = File.open(regionsResultsFilePath);
-	print(resultsFile, "Image name,Region ID,Boundary shape,X1,Y1,X2,Y2,X3,Y3,Pattern type,Background color,Pattern color,cross-region");
+	print(resultsFile, "Image name,Region ID,Boundary shape,X1,Y1,X2,Y2,X3,Y3,Pattern type,Background color,Pattern color,Iridescent,Crossed regions ID");
 	File.close(resultsFile);
 }
 		
@@ -82,6 +72,7 @@ for (f = 0; f < inputFiles.length; f++) {
 
 		// Dialog box to get order
 		Dialog.create("Select order");
+		Dialog.setLocation(dialogPositionX, dialogPositionY);
 		Dialog.addChoice("Order:", orders, orders[0]);
 		Dialog.show();
 		order = Dialog.getChoice();
@@ -94,14 +85,17 @@ for (f = 0; f < inputFiles.length; f++) {
 		
 		// Dialog box to get other biological information
 		Dialog.create("Enter biological info");
+		Dialog.setLocation(dialogPositionX, dialogPositionY);
 		Dialog.addMessage("You selected order: " + order);
-		Dialog.addChoice("Family:", families, families[0]);  // Dropdown for family
-		Dialog.addString("Genus:", "");                      // Text field for genus
-		Dialog.addString("Species:", "");                    // Text field for species
-		Dialog.addString("Subspecies:", "");                 // Text field for subspecies
+		Dialog.addChoice("Family:", families, families[0]);  				// Dropdown for family
+		Dialog.addString("Genus:", "");                      				// Text field for genus
+		Dialog.addString("Species:", "");                    				// Text field for species
+		Dialog.addString("Subspecies:", "");                 				// Text field for subspecies
 		sexOptions = newArray("unknown", "female", "male");
-		Dialog.addChoice("Sex:", sexOptions, sexOptions[0]); // Dropdown for sex
-		Dialog.addString("Experimenter:", ""); 			     // Text field for experimenter
+		Dialog.addChoice("Sex:", sexOptions, sexOptions[0]); 				// Dropdown for sex
+		Dialog.addString("Experimenter:", ""); 			     				// Text field for experimenter
+		positionOptions = newArray("Dorsal", "Ventral");
+		Dialog.addChoice("Position:", positionOptions, positionOptions[0]); // Dropdown for position
 		Dialog.show();
 		family = Dialog.getChoice();
 		genus = Dialog.getString();      
@@ -109,6 +103,7 @@ for (f = 0; f < inputFiles.length; f++) {
 		subspecies = Dialog.getString();
 		sex = Dialog.getChoice();
 		experimenter = Dialog.getString();
+		position = Dialog.getChoice();
 		
 		// START DRAWING PROCESS
 		run("Select None");
@@ -117,6 +112,7 @@ for (f = 0; f < inputFiles.length; f++) {
 		
 		// Dialog box asking for head direction
 		Dialog.createNonBlocking("");
+		Dialog.setLocation(dialogPositionX, dialogPositionY);
 		Dialog.addRadioButtonGroup("Head on the right?", noYesArray, 1, 2, noYesArray[0]);
 		Dialog.show();
 		orientation = Dialog.getRadioButton();
@@ -128,17 +124,19 @@ for (f = 0; f < inputFiles.length; f++) {
 		// Dialog box asking for image calibration
 		setTool("multipoint"); 					
 		Dialog.createNonBlocking("");
-		Dialog.addMessage("Place 2 points at a distance of 1 cm apart");
+		Dialog.setLocation(dialogPositionX, dialogPositionY);
+		Dialog.addMessage("Place 2 points at a distance of 5 cm apart");
 		Dialog.show();
 		// Calibrate the image depending on the 2 points drawn by the user
 		getSelectionCoordinates(xpoints, ypoints);
 	 	length = Math.sqrt(Math.pow(xpoints[0]-xpoints[1], 2) + Math.pow(ypoints[0]-ypoints[1], 2));
-	 	run("Set Scale...", "distance="+length+" known=10 unit=mm");
+	 	run("Set Scale...", "distance="+length+" known=50 unit=mm");
 	 	run("Select None");
 		
 		// Dialog box asking for landmarks
 		setTool("multipoint");
 		Dialog.createNonBlocking("");
+		Dialog.setLocation(dialogPositionX, dialogPositionY);
 		Dialog.addMessage("Place landmarks:");
 		Dialog.addMessage("   1    2    3    4\n   x    x    x    x\n    \n   x    x    x    x\n   8    7    6    5");
 		Dialog.show();
@@ -162,34 +160,37 @@ for (f = 0; f < inputFiles.length; f++) {
 		imgHeightMm = List.getValue("Height");
 		
 		// Save parameters in globalResults.csv file
-		File.append(rootName+","+order+","+family+","+genus+","+species+","+subspecies+","+sex+","+experimenter+","+imgWidthMm+","+imgHeightMm, globalResultsFilePath);
+		File.append(rootName+","+order+","+family+","+genus+","+species+","+subspecies+","+sex+","+experimenter+","+position+","+imgWidthMm+","+imgHeightMm, globalResultsFilePath);
 		
 		// Scale drawing to fixed size
 		run("Scale...", "x=- y=- width="+drawingWidthPix+" height="+drawingHeightPix+" interpolation=Bilinear average create");
 		setVoxelSize(1, 1, 1, "pix");
 		run("RGB Color");
 		imageID = getImageID();
+		run("In [+]");
 		close("\\Others");
 		
 		// CREATE VERTICAL REGIONS
 		// Dialog box asking for number of vertical boundaries
 		Dialog.createNonBlocking("");
+		Dialog.setLocation(dialogPositionX, dialogPositionY);
 		Dialog.addNumber("Number of vertical boundaries", 1); 
 		Dialog.show();
 		verticalBoundariesNb = Dialog.getNumber(); 
 		
 		// Dialog box asking for the shape of each vertical boundary
+		verticalBoundaries = newArray(verticalBoundariesNb);
 		if (verticalBoundariesNb > 0) {
 			Dialog.create("");
+			Dialog.setLocation(dialogPositionX, dialogPositionY);
 			Dialog.addMessage("Shape of vertical boundaries:");
 			for (i = 1; i <= verticalBoundariesNb; i++) { 
 				Dialog.addChoice("Vertical boundary "+i+":", verticalBoundariesShapes)		
 			}
 			Dialog.show();
-		}
-		verticalBoundaries = newArray(verticalBoundariesNb); 
-		for (i = 0; i < verticalBoundariesNb; i++) {
-			verticalBoundaries[i] = Dialog.getChoice();
+			for (i = 0; i < verticalBoundariesNb; i++) {
+				verticalBoundaries[i] = Dialog.getChoice();
+			}
 		}
 		
 		// Create vertical boundaries
@@ -207,36 +208,32 @@ for (f = 0; f < inputFiles.length; f++) {
 		roiManager("select", roiManager("count")-1);
 		roiManager("rename", "Boundary 0");
 		// Add last boundary, on the very right of the drawing
-		makeLine(drawingWidthPix, 0, drawingWidthPix, drawingHeightPix);
+		if(verticalBoundariesNb == 0) {
+			makeLine(drawingWidthPix, 0, drawingWidthPix-1, drawingHeightPix);
+		} else {
+			makeLine(drawingWidthPix, 0, drawingWidthPix, drawingHeightPix);
+		}
 		roiManager("add");
 		roiManager("select", roiManager("count")-1);
 		roiManager("rename", "Boundary "+verticalBoundariesNb+1);
-		verticalBoundaries = Array.concat(verticalBoundaries,newArray("Line"));
+		verticalBoundaries = Array.concat(verticalBoundaries, newArray("Line"));
 		roiManager("sort");
-		linesCoordinates = newArray(verticalBoundariesNb+1);
 		
-		for (i = 1; i <= linesCoordinates.length; i++) {
-			roiManager("select", i);
+		// Compute coordinates of 3 points describing each vertical boundary to save them later in regionsResults.csv file
+		vertBoundCoordinates = newArray(verticalBoundariesNb+1);
+		for (i = 0; i < vertBoundCoordinates.length; i++) {
+			roiManager("select", i+1);
 			Roi.getCoordinates(xpoints, ypoints);
-			pointsNb = xpoints.length;
 			
-			if (verticalBoundaries[i-1] == "Line") {
-			linesCoordinates[i-1] = String.join(newArray(verticalBoundaries[i-1],(d2s(parseInt(((xpoints[0])/drawingWidthPix)*100),1)),(d2s(parseInt((1-((ypoints[1]/2)/(0.5*drawingHeightPix)))*100),1)),(d2s(parseInt(((xpoints[0])/drawingWidthPix)*100),1)),(d2s(parseInt((1-((ypoints[1]/4)/(0.5*drawingHeightPix)))*100),1)),(d2s(parseInt(((xpoints[1])/drawingWidthPix)*100),1)),(d2s(parseInt((1-((ypoints[0])/(0.5*drawingHeightPix)))*100),1))));
-			
-			} else if (verticalBoundaries[i-1] == "V") {
-			linesCoordinates[i-1] = String.join(newArray(verticalBoundaries[i-1],(d2s(parseInt(((xpoints[1])/drawingWidthPix)*100),1)),(d2s(parseInt((1-(ypoints[1]/(0.5*drawingHeightPix)))*100),1)),(d2s(parseInt(((((xpoints[1]-xpoints[0])/2)+xpoints[0])/drawingWidthPix)*100),1)),(d2s(parseInt((1-((ypoints[1]/2)/(0.5*drawingHeightPix)))*100),1)),(d2s(parseInt(((xpoints[0])/drawingWidthPix)*100),1)),(d2s(parseInt((1-((ypoints[0])/(0.5*drawingHeightPix)))*100),1))));
-			
-			} else if (verticalBoundaries[i-1] == "Inverted V") {
-			linesCoordinates[i-1] = String.join(newArray(verticalBoundaries[i-1],(d2s(parseInt(((xpoints[1])/drawingWidthPix)*100),1)),(d2s(parseInt((1-(ypoints[1]/(0.5*drawingHeightPix)))*100),1)),(d2s(parseInt(((((xpoints[0]-xpoints[1])/2)+xpoints[1])/drawingWidthPix)*100),1)),(d2s(parseInt((1-((ypoints[1]/2)/(0.5*drawingHeightPix)))*100),1)),(d2s(parseInt(((xpoints[0])/drawingWidthPix)*100),1)),(d2s(parseInt((1-((ypoints[0])/(0.5*drawingHeightPix)))*100),1))));
-			
-			}else if (verticalBoundaries[i-1] == "U") {
-			linesCoordinates[i-1] = String.join(newArray(verticalBoundaries[i-1],(d2s(parseInt(((xpoints[1])/drawingWidthPix)*100),1)),(d2s(parseInt((1-((((ypoints[2]-ypoints[1])/2)+ypoints[1])/(0.5*drawingHeightPix)))*100),1)),(d2s(parseInt(((xpoints[1])/drawingWidthPix)*100),1)),(d2s(parseInt((1-((ypoints[1])/(0.5*drawingHeightPix)))*100),1)),(d2s(parseInt(((xpoints[0])/drawingWidthPix)*100),1)),(d2s(parseInt((1-((ypoints[0])/(0.5*drawingHeightPix)))*100),1))));
-			
-			} else if (verticalBoundaries[i-1] == "Inverted U") {
-			linesCoordinates[i-1] = String.join(newArray(verticalBoundaries[i-1],(d2s(parseInt(((xpoints[1])/drawingWidthPix)*100),1)),(d2s(parseInt((1-((((ypoints[2]-ypoints[1])/2)+ypoints[1])/(0.5*drawingHeightPix)))*100),1)),(d2s(parseInt(((xpoints[1])/drawingWidthPix)*100),1)),(d2s(parseInt((1-((ypoints[1])/(0.5*drawingHeightPix)))*100),1)),(d2s(parseInt(((xpoints[0])/drawingWidthPix)*100),1)),(d2s(parseInt((1-((ypoints[0])/(0.5*drawingHeightPix)))*100),1))));	
-			
+			coordinates = newArray(6);
+			if (verticalBoundaries[i] == verticalBoundariesShapes[0]) {
+				coordinates = newArray(xpoints[0]/drawingWidthPix, 0, xpoints[0]/drawingWidthPix, 0.5, xpoints[0]/drawingWidthPix, 1);
+			} else if (verticalBoundaries[i] == verticalBoundariesShapes[1] || verticalBoundaries[i] == verticalBoundariesShapes[2]) {
+				coordinates = newArray(xpoints[1]/drawingWidthPix, 0, ((xpoints[1]+xpoints[0])/2)/drawingWidthPix, 0.5, xpoints[0]/drawingWidthPix, 1);	
+			} else if (verticalBoundaries[i] == verticalBoundariesShapes[3] || verticalBoundaries[i] == verticalBoundariesShapes[4]) {
+				coordinates = newArray(xpoints[1]/drawingWidthPix, 0, xpoints[1]/drawingWidthPix, 1-ypoints[1]/(drawingHeightPix/2), xpoints[0]/drawingWidthPix, 1);	
 			}
-			
+			vertBoundCoordinates[i] = verticalBoundaries[i] + "," + d2s(coordinates[0]*100, 1) + "," + d2s(coordinates[1]*100, 1) + "," + d2s(coordinates[2]*100, 1) + "," + d2s(coordinates[3]*100, 1) + "," + d2s(coordinates[4]*100, 1) + "," + d2s(coordinates[5]*100, 1);
 		}
 		
 		// Create vertical regions from vertical boundaries
@@ -250,20 +247,25 @@ for (f = 0; f < inputFiles.length; f++) {
 		// CREATE LONGITUDINAL REGIONS
 		// Dialog box asking for number of longitudinal regions
 		Dialog.createNonBlocking("");
+		Dialog.setLocation(dialogPositionX, dialogPositionY);
 		Dialog.addNumber("Number of longitudinal regions", 0); 
 		Dialog.show();
 		longitudinalRegionsNb = Dialog.getNumber();
+		
+		longBoundCoordinates = newArray(longitudinalRegionsNb);
 		crossedByLongitudinal = newArray(longitudinalRegionsNb);
-		// Dialog box asking for vertical regions crossed by each longitudinal region
+		crossedByVertical = newArray(verticalRegionsNb);
 		if (longitudinalRegionsNb > 0) {
+			// Dialog box asking for vertical regions crossed by each longitudinal region
 			regLabels = newArray(0);
 			regDefaults = newArray(0);
-			for(i = 1; i <= verticalRegionsNb; i++) {
+			for (i = 1; i <= verticalRegionsNb; i++) {
 				regLabels = Array.concat(regLabels, newArray("Region "+i));
 				regDefaults = Array.concat(regDefaults, false);
 			}
 			
 			Dialog.create("");
+			Dialog.setLocation(dialogPositionX, dialogPositionY);
 			Dialog.addMessage("Select vertical regions crossed by each longitudinal region: ");
 			for (i = 1; i <= longitudinalRegionsNb; i++) { 
 				Dialog.addMessage("Longitudinal region "+i+":");
@@ -277,92 +279,91 @@ for (f = 0; f < inputFiles.length; f++) {
 					allCrossedVerticalRegionsBool = Array.concat(allCrossedVerticalRegionsBool, newArray(Dialog.getCheckbox()));
 				}
 			}
-			xLongPoints = newArray();
-			yLongPoints = newArray();
-			crossedLongitudinalRegionsArray = newArray();
-			crossedLongitudinalRegionsName = newArray();
 			
-			//TODO: stocker (dans une list? un array?) quelles régions traverse chaque région
-			regionLongCoordinates = newArray();
 			for (i = 0; i < longitudinalRegionsNb; i++) {
-				crossedVerticalRegionsBool = Array.slice(allCrossedVerticalRegionsBool, i*verticalRegionsNb, i*verticalRegionsNb+verticalRegionsNb);				
+				// Retrieve list of vertical regions crossed by the longitudinal region
+				crossedVerticalRegionsBool = Array.slice(allCrossedVerticalRegionsBool, i*verticalRegionsNb, (i+1)*verticalRegionsNb);				
 				crossedVerticalRegionsName = Array.copy(regLabels);
-				for(j = 0; j < verticalRegionsNb; j++) {
-					if(!crossedVerticalRegionsBool[j]) {
+				for (j = 0; j < verticalRegionsNb; j++) {
+					if (!crossedVerticalRegionsBool[j]) {
 						crossedVerticalRegionsName = Array.deleteValue(crossedVerticalRegionsName, "Region "+j+1);	
 					}		
 				}
+				crossedByLongitudinal[i] = replace(String.join(crossedVerticalRegionsName,"-"), "Region ", "");
 				
-				crossedByLongitudinal[i] = String.join(crossedVerticalRegionsName,"-");
+				// Ask user to draw longitudinal region
 				drawLongitudinalRegion(i, crossedVerticalRegionsName);
-				roiManager("Select", roiManager("count")-1);
-				Roi.getCoordinates(xLongPoints, yLongPoints);
-				regionLongCoordinates [i] = String.join(newArray("long",(d2s(parseInt(((xLongPoints[1])/drawingWidthPix)*100),1)),0,(d2s(parseInt(((xLongPoints[1])/drawingWidthPix)*100),1)),(d2s(parseInt((1-(yLongPoints[1]/(0.5*drawingHeightPix)))*100),1)),(d2s(parseInt(((xLongPoints[0])/drawingWidthPix)*100),1)),(d2s(parseInt((1-(yLongPoints[0]/(0.5*drawingHeightPix)))*100),1))));
-				subtractLongFromVertRegions(i, crossedVerticalRegionsBool);
 				
-			}
-			arraytemp = Array.deleteValue(Array.getSequence(longitudinalRegionsNb+1),0);
-			for (i=0; i< verticalRegionsNb; i++){
-				crossedName = Array.copy(arraytemp);
-				for (j=0; j< longitudinalRegionsNb; j++){
-					crossedLongitudinalBool = String.join(allCrossedVerticalRegionsBool);
-					crossedLongitudinalRegionsArray = split (crossedLongitudinalBool,",,");			
-					if(!crossedLongitudinalRegionsArray[i+j*verticalRegionsNb]) {
-						crossedName = Array.deleteValue(crossedName, j+1);	
-					}	
-				}
-				crossedLongitudinalRegionsName[i] = String.join(crossedName,"-");	
+				// Compute coordinates of 3 points describing the longitudinal region to save them later in regionsResults.csv file
+				roiManager("Select", roiManager("count")-1);
+				Roi.getCoordinates(xpoints, ypoints);
+				longBoundCoordinates[i] = "Longitudinal" + "," + d2s(xpoints[1]/drawingWidthPix*100, 1) + "," + 0.0 + "," + d2s(xpoints[1]/drawingWidthPix*100, 1) + "," + d2s((1-ypoints[1]/(drawingHeightPix/2))*100, 1) + "," + d2s(xpoints[0]/drawingWidthPix*100, 1) + "," + d2s((1-ypoints[0]/(drawingHeightPix/2))*100, 1);
+				
+				// Remove longitudinal region from vertical regions it crosses
+				subtractLongFromVertRegions(i, crossedVerticalRegionsBool);
 			}
 			roiManager("sort");	
+			
+			for (i = 0; i < verticalRegionsNb; i++) {
+				// Retrieve list of longitudinal regions crossed by the vertical region
+				crossedLongitudinalRegionsName = newArray(0);
+				for (j = 0; j < longitudinalRegionsNb; j++) {			
+					if (allCrossedVerticalRegionsBool[i+j*verticalRegionsNb]) {
+						crossedLongitudinalRegionsName = Array.concat(crossedLongitudinalRegionsName, verticalRegionsNb+j+1);
+					}	
+				}
+				crossedByVertical[i] = String.join(crossedLongitudinalRegionsName, "-");
+			}
 		}
 		
-		// In each region, draw pattern with appropriate background and foreground colors
-		
-			for (i = 0; i <= (roiManager("count")-1); i++) {
-				roiManager("select", i);
-				roiName = Roi.getName;
-				Dialog.createNonBlocking("");
-				Dialog.addMessage(roiName+":");
-					
-				Dialog.addRadioButtonGroup("Pattern type: ", patternsTypes, 1, 4, patternsTypes[0]); 
-				Dialog.addRadioButtonGroup("Background color: ", colorsLabel, 6, 6, colorsLabel[0]);
-				Dialog.addRadioButtonGroup("Pattern color: ", colorsLabel, 6, 6, colorsLabel[0]);
-				Dialog.show();
-
-				patternRegion = Dialog.getRadioButton();
-				colorLabelBgRegion = Dialog.getRadioButton();
-				colorLabelPatternRegion = Dialog.getRadioButton();
-				
-				for (j = 0; j < colorsLabel.length; j++) {
-					if (colorLabelBgRegion == colorsLabel[j]){
-						colorHexaBgRegion = colorsHexa[j];
-					}
-					if (colorLabelPatternRegion == colorsLabel[j]){		
-						colorHexaPatternRegion = colorsHexa[j];			
-					}
-				}
-				
-				drawPattern(i, imageID, patternRegion, colorLabelBgRegion, colorLabelPatternRegion,colorHexaBgRegion,colorHexaPatternRegion);	
-				
-				if (patternRegion == patternsTypes[0]) {
-					colorHexaPatternRegion = colorHexaBgRegion;
-				}
-				
-				// Save parameters in globalResults.csv file
-				if (longitudinalRegionsNb > 0) {
-					if (matches(roiName, "Region longitudinal.*" )) {
-						crossedByLongitudinal[i-verticalRegionsNb] = substring(crossedByLongitudinal[i-verticalRegionsNb], 6, 8);
-						File.append(rootName+","+"Region"+(i+1)+","+regionLongCoordinates[i-verticalRegionsNb]+","+patternRegion+","+colorHexaBgRegion+","+colorHexaPatternRegion+","+crossedByLongitudinal[i-verticalRegionsNb], regionsResultsFilePath); 
-					} else {
-						
-						File.append(rootName+","+"Region"+(i+1)+","+linesCoordinates[i]+","+patternRegion+","+colorHexaBgRegion+","+colorHexaPatternRegion+","+crossedLongitudinalRegionsName[i], regionsResultsFilePath); 
-					}
-				}
-				if (longitudinalRegionsNb == 0) {
-					File.append(rootName+","+"Region"+(i+1)+","+linesCoordinates[i]+","+patternRegion+","+colorHexaBgRegion+","+colorHexaPatternRegion, regionsResultsFilePath);
-				}
-				//TODO: vérifier que le format de sauvegarde correspond aux attentes
+		// COLOR REGIONS AND SAVE RESULTS
+		for (i = 0; i <= (roiManager("count")-1); i++) {
+			roiManager("select", i);
+			roiName = Roi.getName;
+			Dialog.createNonBlocking("");
+			Dialog.setLocation(dialogPositionX, dialogPositionY);
+			Dialog.addMessage(roiName+":");
+			
+			// Dialog box asking for pattern type, background color and pattern color
+			Dialog.addRadioButtonGroup("Pattern type: ", patternsTypes, 1, 4, patternsTypes[0]); 
+			Dialog.addRadioButtonGroup("Background color: ", colorsLabel, 6, 6, colorsLabel[0]);
+			Dialog.addRadioButtonGroup("Pattern color: ", colorsLabel, 6, 6, colorsLabel[0]);			
+			Dialog.addRadioButtonGroup("Iridescent: ", noYesArray, 1, 2, noYesArray[0]);
+			Dialog.show();
+			patternRegion = Dialog.getRadioButton();
+			colorLabelBgRegion = Dialog.getRadioButton();
+			colorLabelPatternRegion = Dialog.getRadioButton();
+			if (patternRegion == patternsTypes[0]) {
+				colorLabelPatternRegion = colorLabelBgRegion;
 			}
+			iridescent = Dialog.getRadioButton();
+			
+			// Retrieve background and pattern colors selected by user in hexadecimal format
+			colorHexaBgRegion = "";
+			colorHexaPatternRegion = "";
+			for (j = 0; j < colorsLabel.length; j++) {
+				if (colorLabelBgRegion == colorsLabel[j]){
+					colorHexaBgRegion = colorsHexa[j];
+				}
+				if (colorLabelPatternRegion == colorsLabel[j]){		
+					colorHexaPatternRegion = colorsHexa[j];			
+				}
+			}
+			
+			// Draw pattern with appropriate background and foreground colors
+			drawPattern(i, imageID, patternRegion, colorHexaBgRegion, colorHexaPatternRegion);	
+			
+			// Save parameters in regionResults.csv file
+			if (roiName.contains("longitudinal")) {
+				File.append(rootName+","+(i+1)+","+longBoundCoordinates[i-verticalRegionsNb]+","+patternRegion+","+colorHexaBgRegion+","+colorHexaPatternRegion+","+iridescent+","+crossedByLongitudinal[i-verticalRegionsNb], regionsResultsFilePath);
+			} else {
+				if(crossedByVertical[i] == "" || crossedByVertical[i] == "0") {
+					File.append(rootName+","+(i+1)+","+vertBoundCoordinates[i]+","+patternRegion+","+colorHexaBgRegion+","+colorHexaPatternRegion+","+iridescent, regionsResultsFilePath);
+				} else {
+					File.append(rootName+","+(i+1)+","+vertBoundCoordinates[i]+","+patternRegion+","+colorHexaBgRegion+","+colorHexaPatternRegion+","+iridescent+","+crossedByVertical[i], regionsResultsFilePath);
+				}
+			}
+		}
 			
 		// Save drawing as .png file
 		saveAs("png", outputDir + inputFiles[f]);
@@ -376,11 +377,12 @@ for (f = 0; f < inputFiles.length; f++) {
 	}
 }
 
+print("All images have been analyzed in the directory. Well done!");
+
 /////////////// FUNCTIONS ///////////////
 
 // Create a vertical boundary of the shape selected by the user
 function createVerticalBoundary(boundId, shape) {
-	
 	shiftX = 50;
  	if (shape == verticalBoundariesShapes[0]) { 
     	makeLine(shiftX*(boundId+1), 0, shiftX*(boundId+1), drawingHeightPix);
@@ -406,8 +408,8 @@ function createVerticalBoundary(boundId, shape) {
  
 // Allow the user to move the vertical boundary at the correct position
 function moveVerticalBoundary(boundId) {
-	
 	Dialog.createNonBlocking("");
+	Dialog.setLocation(dialogPositionX, dialogPositionY);
 	Dialog.addMessage("Place correctly vertical boundary "+boundId+1);
 	Dialog.show();
 	
@@ -420,7 +422,6 @@ function moveVerticalBoundary(boundId) {
 
 // Check position of the vertical boundary
 function checkVerticalBoundary(boundId) {
-	
 	roiManager("select", boundId);
 	Roi.getCoordinates(xpoints, ypoints);
 	pointsNb = xpoints.length;
@@ -456,9 +457,8 @@ function checkVerticalBoundary(boundId) {
 
 // Create polygon from two vertical boundaries composing it
 function createVerticalRegion(regId) {
-	
 	roiManager("select", regId);
-	Roi.getCoordinates(xpoints, ypoints); 
+	Roi.getCoordinates(xpoints, ypoints);
 	Array.reverse(xpoints);
 	Array.reverse(ypoints);
 	
@@ -476,16 +476,16 @@ function createVerticalRegion(regId) {
 
 // Dialog box asking the user to draw longitudinal region
 function drawLongitudinalRegion(longId, crossedVerticalRegionsName) {
-	
 	setTool("Rectangle");
 	run("Select None");
 	Dialog.createNonBlocking("");
+	Dialog.setLocation(dialogPositionX, dialogPositionY);
 	Dialog.addMessage("Draw rectangle representing longitudinal region "+longId+1);
 	Dialog.addMessage("It should cross "+String.join(crossedVerticalRegionsName));
 	Dialog.show();
 	roiManager("add");
 	roiManager("Select", roiManager("count")-1);
-	roiManager("rename", "Region longitudinal "+longId+1);
+	roiManager("rename", "Region "+verticalRegionsNb+longId+1+" longitudinal");
 	
 	// Check that longitudinal region is symmetric with respect to X-axis
 	List.setMeasurements;
@@ -497,20 +497,18 @@ function drawLongitudinalRegion(longId, crossedVerticalRegionsName) {
 // Subtract longitudinal region from vertical regions it crosses
 function subtractLongFromVertRegions(longId, crossedVerticalRegionsBool) {
 	for (i = 0; i < crossedVerticalRegionsBool.length; i++) {
-		
-		regId = RoiManager.getIndex("Region "+i+1);
-		longRegId = RoiManager.getIndex("Region longitudinal "+longId+1);
-		ids = newArray(regId, longRegId);
-		
-		// Create intersection of vertical region and longitudinal region
-		roiManager("Select", ids);
-		roiManager("AND");
-		
-		
-		if(getValue("selection.size") != 0) {
-			roiManager("Add");
+		if(crossedVerticalRegionsBool[i]) {
+			regId = RoiManager.getIndex("Region "+i+1);
+			longRegId = RoiManager.getIndex("Region "+verticalRegionsNb+longId+1+" longitudinal");
+			ids = newArray(regId, longRegId);
 			
-			if(crossedVerticalRegionsBool[i]) {
+			// Create intersection of vertical region and longitudinal region
+			roiManager("Select", ids);
+			roiManager("AND");
+			
+			if(getValue("selection.size") != 0) {
+				roiManager("Add");
+
 				// Subtract obtained ROI from vertical region
 				ids[1] = roiManager("count")-1;
 				roiManager("Select", ids);
@@ -524,27 +522,13 @@ function subtractLongFromVertRegions(longId, crossedVerticalRegionsBool) {
 				roiManager("delete");
 				roiManager("Select", roiManager("count")-1);
 				roiManager("rename", "Region "+i+1);
-			} else {
-				// Subtract obtained ROI from longitudinal region		
-				ids[0] = roiManager("count")-1;
-				roiManager("Select", ids);
-				roiManager("XOR");
-				roiManager("Add");
-				
-				// Delete old full longitudinal region
-				roiManager("Select", ids);
-				roiManager("delete");
-				roiManager("Select", roiManager("count")-1);
-				roiManager("rename", "Region longitudinal "+longId+1);
 			}
 		}
 	}
 }
 
 // Draw region with appropriate pattern, background color and pattern color
-function drawPattern(roiID, imageID, patternRegion, colorLabelBgRegion, colorLabelPatternRegion,colorHexaBgRegion,colorHexaPatternRegion) {
-	// Retrieve which colors the user chose for background and pattern
-	
+function drawPattern(roiID, imageID, patternRegion, colorHexaBgRegion, colorHexaPatternRegion) {
 	if (patternRegion == patternsTypes[0]) {
 		setColor(colorHexaBgRegion);
 		run("Fill", "slice");

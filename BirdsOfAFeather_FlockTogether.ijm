@@ -159,9 +159,6 @@ for (f = 0; f < inputFiles.length; f++) {
 		imgWidthMm = List.getValue("Width");
 		imgHeightMm = List.getValue("Height");
 		
-		// Save parameters in globalResults.csv file
-		File.append(rootName+","+order+","+family+","+genus+","+species+","+subspecies+","+sex+","+experimenter+","+position+","+imgWidthMm+","+imgHeightMm, globalResultsFilePath);
-		
 		// Scale drawing to fixed size
 		run("Scale...", "x=- y=- width="+drawingWidthPix+" height="+drawingHeightPix+" interpolation=Bilinear average create");
 		setVoxelSize(1, 1, 1, "pix");
@@ -364,6 +361,9 @@ for (f = 0; f < inputFiles.length; f++) {
 				}
 			}
 		}
+		
+		// Save parameters in globalResults.csv file
+		File.append(rootName+","+order+","+family+","+genus+","+species+","+subspecies+","+sex+","+experimenter+","+position+","+imgWidthMm+","+imgHeightMm, globalResultsFilePath);
 			
 		// Save drawing as .png file
 		saveAs("png", outputDir + inputFiles[f]);

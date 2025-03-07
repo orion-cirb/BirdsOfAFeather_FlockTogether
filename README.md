@@ -6,7 +6,7 @@
 * **Developed by:** Thomas & Héloïse
 * **Developed for:** Carole & Paul
 * **Team:** Manceau
-* **Date:** February 2025
+* **Date:** March 2025
 * **Software:** Fiji
 
 
@@ -18,7 +18,7 @@ RGB images of birds. A ruler is needed on the image for calibration.
 ### Macro description
 
 1. Indicate the bird's order, family, genus, species, subspecies, and sex.
-2. Place two points 1 cm apart on the ruler to calibrate the image.
+2. Place two points 5 cm apart on the ruler to calibrate the image.
 3. Place 8 landmarks on the bird, crop the image around them, and scale it to a fixed size of 500 × 250 pixels.
 4. Specify the number of vertical boundaries and their shape (Line, V, Inverted V, U, or Inverted U).
 5. Adjust each vertical boundary to its correct position and create vertical regions accordingly.
@@ -32,4 +32,4 @@ RGB images of birds. A ruler is needed on the image for calibration.
 
 ### Version history
 
-Work in progress
+Version 1 released on March 7, 2025.

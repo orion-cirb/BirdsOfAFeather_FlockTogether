@@ -236,10 +236,11 @@ for (f = 0; f < inputFiles.length; f++) {
 		// Create vertical regions from vertical boundaries
 		verticalRegionsNb = verticalBoundariesNb+1;
 		for (i = 0; i < verticalRegionsNb; i++) {
-			createVerticalRegion(i);
+			createVerticalRegion(i, verticalBoundariesNb);
 		}
 		roiManager("select", Array.getSequence(verticalBoundariesNb+2));
 		roiManager("delete");
+		waitForUser;
 		
 		// CREATE LONGITUDINAL REGIONS
 		// Dialog box asking for number of longitudinal regions
@@ -456,18 +457,22 @@ function checkVerticalBoundary(boundId) {
 }
 
 // Create polygon from two vertical boundaries composing it
-function createVerticalRegion(regId) {
-	roiManager("select", regId);
-	Roi.getCoordinates(xpoints, ypoints);
-	Array.reverse(xpoints);
-	Array.reverse(ypoints);
-	
-	roiManager("select", regId+1);
-	Roi.getCoordinates(xpoints2, ypoints2);
-	
-	X = Array.concat(xpoints, xpoints2);
-	Y = Array.concat(ypoints, ypoints2);
-	makeSelection("polygon", X, Y);
+function createVerticalRegion(regId, verticalBoundariesNb) {
+	if(verticalBoundariesNb == 0) {
+		run("Select All");
+	} else {
+		roiManager("select", regId);
+		Roi.getCoordinates(xpoints, ypoints);
+		Array.reverse(xpoints);
+		Array.reverse(ypoints);
+		
+		roiManager("select", regId+1);
+		Roi.getCoordinates(xpoints2, ypoints2);
+		
+		X = Array.concat(xpoints, xpoints2);
+		Y = Array.concat(ypoints, ypoints2);
+		makeSelection("polygon", X, Y);
+	}
 	roiManager("add");
 	
 	roiManager("select", roiManager("count")-1);

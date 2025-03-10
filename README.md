@@ -32,4 +32,4 @@ RGB images of birds. A ruler is needed on the image for calibration.
 
 ### Version history
 
-Version 1 released on March 7, 2025.
+Version 1 released on March 10, 2025.

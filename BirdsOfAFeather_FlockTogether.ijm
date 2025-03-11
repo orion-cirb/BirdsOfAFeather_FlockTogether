@@ -240,7 +240,6 @@ for (f = 0; f < inputFiles.length; f++) {
 		}
 		roiManager("select", Array.getSequence(verticalBoundariesNb+2));
 		roiManager("delete");
-		waitForUser;
 		
 		// CREATE LONGITUDINAL REGIONS
 		// Dialog box asking for number of longitudinal regions
